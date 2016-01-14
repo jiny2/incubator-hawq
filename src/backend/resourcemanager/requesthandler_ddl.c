@@ -472,7 +472,8 @@ bool handleRMDDLRequestManipulateResourceQueue(void **arg)
 				goto senderr;
 			}
 
-			if ( todroptrack->isBusy )
+			if ( todroptrack->isBusy ||
+				 todroptrack->QueryResRequests.NodeCount > 0 )
 			{
 				ddlres = RESQUEMGR_IN_USE;
 				snprintf(errorbuf, sizeof(errorbuf), "resource queue %s is busy",
