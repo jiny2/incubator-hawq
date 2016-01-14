@@ -5281,7 +5281,7 @@ int detectAndDealWithDeadLockInShadow(DynResourceQueueTrack quetrack,
 				 shadowtrack->DLDetector.LockedTotal.MemoryMB);
 
 	/* Assume more available resource unlocked queued requests. */
-	uint32_t pavailmemorymb = 0;
+	int32_t pavailmemorymb = 0;
 
 	/* Go through all queued query resource requests, recalculate the request. */
 	DQUEUE_LOOP_BEGIN(&(shadowtrack->QueryResRequests), iter, ConnectionTrack, conn)
@@ -5293,10 +5293,10 @@ int detectAndDealWithDeadLockInShadow(DynResourceQueueTrack quetrack,
 		}
 
 		/* Check if this connection has deadlock issue. */
-		uint32_t expmemorymb   = conn->SegMemoryMB * conn->SegNumMin;
-		uint32_t availmemorymb = shadowtrack->ClusterMemoryMaxMB -
-								 shadowtrack->DLDetector.LockedTotal.MemoryMB +
-								 pavailmemorymb;
+		int32_t expmemorymb   = conn->SegMemoryMB * conn->SegNumMin;
+		int32_t availmemorymb = shadowtrack->ClusterMemoryMaxMB -
+								shadowtrack->DLDetector.LockedTotal.MemoryMB +
+								pavailmemorymb;
 
 		/*----------------------------------------------------------------------
 		 * If the queue already uses more resource than its maximum capability,
@@ -5308,6 +5308,7 @@ int detectAndDealWithDeadLockInShadow(DynResourceQueueTrack quetrack,
 						shadowtrack->ClusterMemoryMaxMB :
 						availmemorymb;
 
+		/* NOTE: availmemorymb maybe less than 0. */
 		if ( expmemorymb > availmemorymb )
 		{
 			/* We encounter a deadlock issue. */
@@ -5347,8 +5348,8 @@ int detectAndDealWithDeadLockInShadow(DynResourceQueueTrack quetrack,
 
 void cancelQueryRequestToBreakDeadLockInShadow(DynResourceQueueTrack shadowtrack,
 											   DQueueNode			 iter,
-											   uint32_t				 expmemorymb,
-											   uint32_t				 availmemorymb)
+											   int32_t				 expmemorymb,
+											   int32_t				 availmemorymb)
 {
 	static char errorbuf[ERRORMESSAGE_SIZE];
 	DQueueNode tailiter = getDQueueContainerTail(&(shadowtrack->QueryResRequests));
