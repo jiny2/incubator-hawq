@@ -5186,6 +5186,10 @@ int rebuildResourceQueueTrackDynamicStatusInShadow(DynResourceQueueTrack  quetra
 	copyResourceDeadLockDetectorWithoutLocking(&(quetrack->DLDetector),
 											   &(shadowtrack->DLDetector));
 
+	elog(DEBUG3, "Deadlock detector in shadow has %d MB in use %d MB locked.",
+				 shadowtrack->DLDetector.InUseTotal.MemoryMB,
+				 quetrack->DLDetector.LockedTotal.MemoryMB);
+
 	/* Go through all queued query resource requests, recalculate the request. */
 	DQUEUE_LOOP_BEGIN(&(quetrack->QueryResRequests), iter, ConnectionTrack, conn)
 
@@ -5263,6 +5267,11 @@ int rebuildResourceQueueTrackDynamicStatusInShadow(DynResourceQueueTrack  quetra
 		}
 	DQUEUE_LOOP_END
 
+	elog(DEBUG3, "Deadlock detector in shadow has %d MB in use %d MB locked "
+				 "after rebuilding.",
+				 shadowtrack->DLDetector.InUseTotal.MemoryMB,
+				 shadowtrack->DLDetector.LockedTotal.MemoryMB);
+
 	elog(LOG, "Finished rebuilding resource queue %s dynamic status in its shadow.",
 			  quetrack->QueueInfo->Name);
 
@@ -5276,7 +5285,7 @@ int detectAndDealWithDeadLockInShadow(DynResourceQueueTrack quetrack,
 	Assert(quetrack->ShadowQueueTrack != NULL);
 	DynResourceQueueTrack shadowtrack = quetrack->ShadowQueueTrack;
 
-	elog(DEBUG3, "Deadlock detector has %d MB in use, %d MB locked",
+	elog(DEBUG3, "Deadlock detector in shadow has %d MB in use, %d MB locked",
 				 shadowtrack->DLDetector.InUseTotal.MemoryMB,
 				 shadowtrack->DLDetector.LockedTotal.MemoryMB);
 
