@@ -5451,8 +5451,8 @@ void applyResourceQueueTrackChangesFromShadows(List *quehavingshadow)
 
 		/* The deadlock detector should use the new one completely. */
 		resetResourceDeadLockDetector(&(quetrack->DLDetector));
-		copyResourceDeadLockDetectorWithoutLocking(&(quetrack->DLDetector),
-												   &(shadowtrack->DLDetector));
+		copyResourceDeadLockDetectorWithoutLocking(&(shadowtrack->DLDetector),
+												   &(quetrack->DLDetector));
 
 		resetResourceBundleDataByBundle(&(quetrack->TotalUsed),
 										&(shadowtrack->TotalUsed));
