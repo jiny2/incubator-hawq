@@ -3045,7 +3045,7 @@ void dispatchResourceToQueries(void)
 							 track->TotalUsed.Core);
 
 				/* We still need to handle the resource queue dead lock here. */
-				//detectAndDealWithDeadLock(track);
+				detectAndDealWithDeadLock(track);
 
 			}
 			else
