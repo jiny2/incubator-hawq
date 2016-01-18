@@ -3043,6 +3043,10 @@ void dispatchResourceToQueries(void)
 							 expweight,
 							 track->TotalUsed.MemoryMB,
 							 track->TotalUsed.Core);
+
+				/* We still need to handle the resource queue dead lock here. */
+				//detectAndDealWithDeadLock(track);
+
 			}
 			else
 			{
@@ -4168,7 +4172,6 @@ int dispatchResourceToQueries_EVEN(DynResourceQueueTrack track)
 
 	if ( counter == 0 )
 	{
-		/* TODO:: Maybe too conservative. */
 		detectAndDealWithDeadLock(track);
 		return FUNC_RETURN_OK; /* Expect requests are processed in next loop. */
 	}
