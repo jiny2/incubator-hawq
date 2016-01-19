@@ -2968,6 +2968,9 @@ void dispatchResourceToQueries(void)
 {
 	bool 		hasresourceallocated = false;
 	bool 		hasrequest 		  	 = false;
+
+	elog(DEBUG3, "Resource manager tries to dispatch resource to queries.");
+
 	/*
 	 *--------------------------------------------------------------------------
 	 * STEP 1. Re-balance resource among different mem/core ratio trackers. After
@@ -2991,6 +2994,14 @@ void dispatchResourceToQueries(void)
 		if ( (mctrack->ClusterMemoryMaxMB == 0 || mctrack->ClusterVCoreMax == 0) ||
 			 (mctrack->TotalAllocated.MemoryMB == 0 && mctrack->TotalAllocated.Core == 0) )
 		{
+			elog(DEBUG3, "Resource manager skipped memory core ratio index %d, "
+						 "memory max limit %d MB, %lf CORE, "
+						 "total allocated %d MB, %lf CORE",
+						 i,
+						 mctrack->ClusterMemoryMaxMB,
+						 mctrack->ClusterVCoreMax,
+						 mctrack->TotalAllocated.MemoryMB,
+						 mctrack->TotalAllocated.Core);
 			continue;
 		}
 
@@ -3014,6 +3025,8 @@ void dispatchResourceToQueries(void)
 			/* Ignore the queues not in use. */
 			if ( !track->isBusy )
 			{
+				elog(DEBUG3, "Resource manager skips idle resource queue %s",
+							 track->QueueInfo->Name);
 				continue;
 			}
 
@@ -3838,7 +3851,7 @@ void refreshResourceQueuePercentageCapacityInternal(uint32_t clustermemmb,
 		}
 		else
 		{
-			track->ClusterVCoreMax = track->ClusterMemoryMaxMB / track->MemCoreRatio;
+			track->ClusterVCoreMax = 1.0 * track->ClusterMemoryMaxMB / track->MemCoreRatio;
 		}
 
 		/* Decide cluster segment resource quota. */
@@ -3952,6 +3965,9 @@ void dispatchResourceToQueriesInOneQueue(DynResourceQueueTrack track)
 {
 	int			policy			= 0;
 	Assert( track != NULL );
+
+	elog(DEBUG3, "Resource manager dispatch resource in queue %s",
+				 track->QueueInfo->Name);
 
 	if ( track->QueryResRequests.NodeCount > 0 )
 	{
