@@ -5511,15 +5511,6 @@ void applyResourceQueueTrackChangesFromShadows(List *quehavingshadow)
 				MEMORY_CONTEXT_SWITCH_TO(PCONTEXT)
 				PCONTRACK->ConnToSend = lappend(PCONTRACK->ConnToSend, conn);
 				MEMORY_CONTEXT_SWITCH_BACK
-
-				/* Recycle connection track instance. */
-				quetrack->CurConnCounter--;
-				if ( quetrack->CurConnCounter == 0 )
-				{
-					quetrack->isBusy = false;
-					refreshMemoryCoreRatioLimits();
-					refreshMemoryCoreRatioWaterMark();
-				}
 			}
 			else
 			{
