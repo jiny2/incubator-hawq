@@ -2513,7 +2513,7 @@ int adjustResourceExpectsByQueueNVSegLimits(ConnectionTrack	 conntrack,
 			return RESQUEMGR_WRONG_NVSEG_PERSEG_LIMIT_LOWER;
 		}
 
-		if ( conntrack->SegNum >= minnvseg && conntrack->SegNumMin < minnvseg )
+		if ( conntrack->SegNumMin < minnvseg )
 		{
 			conntrack->SegNumMin = minnvseg;
 			adjusted =true;
@@ -2563,6 +2563,8 @@ int adjustResourceExpectsByQueueNVSegLimits(ConnectionTrack	 conntrack,
 					conntrack->ConnID,
 					conntrack->SegNumMin);
 	}
+
+	return FUNC_RETURN_OK;
 }
 
 /* Resource is returned from query to resource queue. */
