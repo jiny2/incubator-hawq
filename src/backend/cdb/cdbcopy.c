@@ -78,6 +78,9 @@ makeCdbCopy(bool is_copy_in, QueryResource *resource)
 	/* init gangs */
 	c->aotupcounts = NULL;
 
+	c->executors.segment_conns = NIL;
+	c->executors.errbuf.data = NULL;
+
 	/* Initialize the state of each segment database */
 	c->segdb_state = (SegDbState **) palloc((c->partition_num) * sizeof(SegDbState *));
 
