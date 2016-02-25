@@ -571,6 +571,12 @@ int MainHandlerLoop(void)
 			/* Move all resource broker allocated GRM containers to returned. */
 			cleanupAllGRMContainers();
 
+			/*
+			 * Set all segments GRM availability down and set available number
+			 * of segment number 0.
+			 */
+			setAllSegResourceGRMUnavailable();
+
 			/* Refresh resource queue resource usage and request quota. */
 			refreshMemoryCoreRatioLevelUsage(gettime_microsec());
 
@@ -2223,7 +2229,6 @@ int generateAllocRequestToBroker(void)
 	/* Call resource broker to request resource. */
 	if ( reqmem > 0 && reqcore > 0 )
 	{
-
 		/*
 		 * Here we know that we have to allocate more resource from GRM, we should
 		 * check again to enrich the preferred host list for new locality data

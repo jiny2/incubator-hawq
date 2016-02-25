@@ -1301,6 +1301,7 @@ void setAllSegResourceGRMUnavailable(void)
 		setSegResGLOBAvailability(segres, RESOURCE_SEG_STATUS_UNAVAILABLE);
 	}
 	freePAIRRefList(&(PRESPOOL->Segments), &allsegres);
+	PRESPOOL->AvailNodeCount = 0;
 }
 
 void resetAllSegmentsGRMContainerFailAllocCount(void)
