@@ -68,11 +68,6 @@ void WriteReadyHandler_Connect(AsyncCommBuffer buffer)
 		shouldclose = true;
 	}
 
-	if ( setConnectionLongTermNoDelay(buffer->FD) != FUNC_RETURN_OK )
-	{
-		shouldclose = true;
-	}
-
 	if ( shouldclose )
 	{
 		ErrorHandler_Connect(buffer);
