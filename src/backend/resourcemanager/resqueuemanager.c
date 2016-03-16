@@ -346,6 +346,17 @@ int shallowparseResourceQueueWithAttributes(List 	*rawattr,
 		case RSQ_DDL_ATTR_NVSEG_UPPER_LIMIT_PERSEG:
 		case RSQ_DDL_ATTR_NVSEG_LOWER_LIMIT_PERSEG:
 		{
+
+			/* The empty value is not allowed. */
+			if ( SimpleStringEmpty(&(property->Val)) )
+			{
+				snprintf(errorbuf, errorbufsize,
+						 "the value of %s cannot be empty",
+						 RSQDDLAttrNames[attrindex]);
+				elog(WARNING, "Resource manager failed parsing attribute, %s",
+							  errorbuf);
+				return RMDDL_WRONG_ATTRVALUE;
+			}
 			/*
 			 * Build property.
 			 *
@@ -2631,8 +2642,7 @@ void refreshActualMinGRMContainerPerSeg(void)
 		foreach(cell, allsegres)
 		{
 			SegResource segres = (SegResource)(((PAIR)lfirst(cell))->Value);
-			if ( !IS_SEGSTAT_FTSAVAILABLE(segres->Stat) ||
-				 !IS_SEGSTAT_GRMAVAILABLE(segres->Stat) )
+			if (IS_SEGSTAT_FTSAVAILABLE(segres->Stat))
 			{
 				continue;
 			}
@@ -3869,7 +3879,7 @@ int computeQueryQuota_EVEN(DynResourceQueueTrack	track,
 	*segnummin = reservsegnum;
 	*segnummin = *segnummin > *segnum ? *segnum : *segnummin;
 
-	Assert( *segnummin > 0 && *segnummin <= *segnum );
+	Assert( *segnummin >= 0 && *segnummin <= *segnum );
 	return FUNC_RETURN_OK;
 }
 

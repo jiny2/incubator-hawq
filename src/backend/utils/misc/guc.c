@@ -766,6 +766,7 @@ bool 		optimizer_multilevel_partitioning;
 bool        optimizer_enable_derive_stats_all_groups;
 bool		optimizer_explain_show_status;
 bool		optimizer_prefer_scalar_dqa_multistage_agg;
+int		optimizer_parts_to_force_sort_on_insert;
 
 /* Security */
 bool		gp_reject_internal_tcp_conn = true;
@@ -6187,6 +6188,16 @@ static struct config_int ConfigureNamesInt[] =
 	},
 
 	{
+		{"optimizer_parts_to_force_sort_on_insert", PGC_USERSET, DEVELOPER_OPTIONS,
+			gettext_noop("Minimum number of partitions required to force sorting tuples during insertion in an append only row-oriented partitioned table"),
+			NULL,
+			GUC_NOT_IN_SAMPLE | GUC_GPDB_ADDOPT
+		},
+		&optimizer_parts_to_force_sort_on_insert,
+		INT_MAX, 0, INT_MAX, NULL, NULL
+	},
+
+	{
 		{"pxf_stat_max_fragments", PGC_USERSET, EXTERNAL_TABLES,
 			gettext_noop("Max number of fragments to be sampled during ANALYZE on a PXF table."),
 			NULL,
@@ -6368,7 +6379,7 @@ static struct config_int ConfigureNamesInt[] =
                     NULL
             },
             &rm_nvseg_perquery_limit,
-            1000, 1, 65535, NULL, NULL
+            512, 1, 65535, NULL, NULL
     },
 
     {
@@ -6524,7 +6535,7 @@ static struct config_int ConfigureNamesInt[] =
 			NULL
 		},
 		&rm_rejectrequest_nseg_limit,
-		2, 0, 65535, NULL, NULL
+		4, 0, 65535, NULL, NULL
 	},
 
 	{
