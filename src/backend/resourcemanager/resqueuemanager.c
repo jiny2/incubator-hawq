@@ -740,7 +740,6 @@ int updateResourceQueueAttributesInShadow(List 			 		*attributes,
 	ListCell 			   *cell 			  = NULL;
 	int 		  			attrindex		  = -1;
 	int			  			percentage_change = 0;
-	int			  			value_change	  = 0;
 	DynResourceQueue		shadowqueinfo	  = NULL;
 
 	SimpStringPtr			attrname		  = NULL;
@@ -759,40 +758,11 @@ int updateResourceQueueAttributesInShadow(List 			 		*attributes,
 
 		attrindex = getRSQTBLAttributeNameIndex(attrname);
 
-		if ( SimpleStringEmpty(attrvalue) )
-		{
-			elog(WARNING, "No value set for attribute %s when updating resource "
-						  "queue %s, ignore it",
-						  attrname->Str,
-						  queue->QueueInfo->Name);
-			continue;
-		}
-
-		if ( attrindex == -1 )
-		{
-			res = RESQUEMGR_WRONG_ATTRNAME;
-			snprintf(errorbuf, errorbufsize,
-					 "cannot recognize resource queue attribute %s",
-					 attrname->Str);
-			elog(WARNING, "Cannot update resource queue %s attribute, %s",
-						  queue->QueueInfo->Name,
-						  errorbuf);
-			return res;
-		}
-
 		/*
 		 * Actually parse each attribute.
 		 */
 		switch(attrindex)
 		{
-		case RSQ_TBL_ATTR_OID:
-			res = RESQUEMGR_WRONG_ATTRNAME;
-			snprintf(errorbuf, errorbufsize, "cannot alter resource queue OID");
-			elog(WARNING, "Cannot update resource queue %s attribute, %s",
-						  queue->QueueInfo->Name,
-						  errorbuf);
-			return res;
-
 		case RSQ_TBL_ATTR_PARENT:
 			res = RESQUEMGR_WRONG_ATTRNAME;
 			snprintf(errorbuf, errorbufsize,
@@ -832,12 +802,12 @@ int updateResourceQueueAttributesInShadow(List 			 		*attributes,
 								shadowqueinfo->ClusterMemoryPer,
 								queue->QueueInfo->Name);
 				}
+
+				shadowqueinfo->Status |= RESOURCE_QUEUE_STATUS_EXPRESS_PERCENT;
 			}
 			else
 			{
-				value_change  += 1;
-				res = SimpleStringToStorageSizeMB(attrvalue,
-												  &(shadowqueinfo->ClusterMemoryMB));
+				Assert(false);
 			}
 			break;
 
@@ -857,12 +827,12 @@ int updateResourceQueueAttributesInShadow(List 			 		*attributes,
 								shadowqueinfo->ClusterVCorePer,
 								queue->QueueInfo->Name);
 				}
+
+				shadowqueinfo->Status |= RESOURCE_QUEUE_STATUS_EXPRESS_PERCENT;
 			}
 			else
 			{
-				value_change  += 1;
-				res = SimpleStringToDouble(attrvalue,
-										   &(shadowqueinfo->ClusterVCore));
+				Assert(false);
 			}
 			break;
 
@@ -888,28 +858,6 @@ int updateResourceQueueAttributesInShadow(List 			 		*attributes,
 								"in shadow of resource queue %s.",
 								RSQTBLAttrNames[RSQ_TBL_ATTR_VSEG_RESOURCE_QUOTA],
 								shadowqueinfo->SegResourceQuotaMemoryMB,
-								queue->QueueInfo->Name);
-				}
-			}
-			else if ( SimpleStringStartWith(
-						  attrvalue,
-						  RESOURCE_QUEUE_SEG_RES_QUOTA_CORE) == FUNC_RETURN_OK )
-			{
-				SimpString valuestr;
-				setSimpleStringRef(
-					&valuestr,
-					attrvalue->Str+sizeof(RESOURCE_QUEUE_SEG_RES_QUOTA_CORE)-1,
-					attrvalue->Len-sizeof(RESOURCE_QUEUE_SEG_RES_QUOTA_CORE)+1);
-
-				res = SimpleStringToDouble(&valuestr,
-						   	   	   	   	   &(shadowqueinfo->SegResourceQuotaVCore));
-				if ( res == FUNC_RETURN_OK )
-				{
-					shadowqueinfo->SegResourceQuotaMemoryMB = -1;
-					elog(RMLOG, "Resource manager updated %s vcore quota %lf "
-								"in shadow of resource queue %s.",
-								RSQTBLAttrNames[RSQ_TBL_ATTR_VSEG_RESOURCE_QUOTA],
-								shadowqueinfo->SegResourceQuotaVCore,
 								queue->QueueInfo->Name);
 				}
 			}
@@ -993,20 +941,6 @@ int updateResourceQueueAttributesInShadow(List 			 		*attributes,
 							queue->QueueInfo->Name);
 			}
 			break;
-		case RSQ_TBL_ATTR_STATUS:
-			res = RESQUEMGR_WRONG_ATTRNAME;
-			snprintf(errorbuf, errorbufsize,
-					 "can not alter %s",
-					 RSQTBLAttrNames[RSQ_TBL_ATTR_STATUS]);
-			elog(WARNING, "Resource manager failed to update resource queue "
-						  "attribute in shadow of resource queue %s, %s",
-						  queue->QueueInfo->Name,
-						  errorbuf);
-			return res;
-
-		case RSQ_TBL_ATTR_CREATION_TIME:
-		case RSQ_TBL_ATTR_UPDATE_TIME:
-			break;
 		default:
 			/* Should not occur. Invalid attribute name has been checked. */
 			Assert(false);
@@ -1027,50 +961,6 @@ int updateResourceQueueAttributesInShadow(List 			 		*attributes,
 		}
 	}
 
-	/*
-	 * Memory and Core resource must be specified and they must use the same way
-	 * to express the resource.
-	 */
-	if ( RESQUEUE_IS_PERCENT(shadowqueinfo) )
-	{
-		if (value_change == 1)
-		{
-			res = RESQUEMGR_INCONSISTENT_RESOURCE_EXP;
-			snprintf(errorbuf, errorbufsize,
-					 "%s and %s must use the same way to express resource limit",
-					 RSQTBLAttrNames[RSQ_TBL_ATTR_MEMORY_LIMIT_CLUSTER],
-					 RSQTBLAttrNames[RSQ_TBL_ATTR_CORE_LIMIT_CLUSTER]);
-			elog(WARNING, "Resource manager failed to update the shadow of "
-						  "resource queue %s, %s",
-						  queue->QueueInfo->Name,
-						  errorbuf);
-			return res;
-		}
-		if (value_change == 2)
-		{
-			shadowqueinfo->Status ^= RESOURCE_QUEUE_STATUS_EXPRESS_PERCENT;
-		}
-	}
-	else
-	{
-		if (percentage_change == 1)
-		{
-			res = RESQUEMGR_INCONSISTENT_RESOURCE_EXP;
-			snprintf(errorbuf, errorbufsize,
-					 "%s and %s must use the same way to express resource limit",
-					 RSQTBLAttrNames[RSQ_TBL_ATTR_MEMORY_LIMIT_CLUSTER],
-					 RSQTBLAttrNames[RSQ_TBL_ATTR_CORE_LIMIT_CLUSTER]);
-			elog(WARNING, "Resource manager failed to update the shadow of "
-						  "resource queue %s, %s",
-						  queue->QueueInfo->Name,
-						  errorbuf);
-			return res;
-		}
-		if (percentage_change == 2)
-		{
-			shadowqueinfo->Status |= RESOURCE_QUEUE_STATUS_EXPRESS_PERCENT;
-		}
-	}
 	return res;
 }
 
@@ -1171,56 +1061,6 @@ int checkAndCompleteNewResourceQueueAttributes(DynResourceQueue  queue,
 	/*======================================*/
 	if ( RESQUEUE_IS_PERCENT(queue) )
 	{
-		/* MEMORY_LIMIT_CLUSTER and CORE_LIMIT_CLUSTER must be specified.*/
-		if ( queue->ClusterMemoryPer == -1 )
-		{
-			res = RESQUEMGR_LACK_ATTR;
-			snprintf(errorbuf, errorbufsize,
-					 "%s must be set",
-					 RSQDDLAttrNames[RSQ_DDL_ATTR_MEMORY_LIMIT_CLUSTER]);
-			ELOG_WARNING_ERRORMESSAGE_COMPLETEQUEUE(queue, errorbuf)
-			return res;
-		}
-
-		if ( queue->ClusterVCorePer == -1 )
-		{
-			res = RESQUEMGR_LACK_ATTR;
-			snprintf(errorbuf, errorbufsize,
-					 "%s must be set",
-					 RSQDDLAttrNames[RSQ_DDL_ATTR_CORE_LIMIT_CLUSTER]);
-			ELOG_WARNING_ERRORMESSAGE_COMPLETEQUEUE(queue, errorbuf)
-			return res;
-		}
-
-		/*
-		 * The values of MEMORY_LIMIT_CLUSTER, CORE_LIMIT_CLUSTER must be greater
-		 * than 0, less than 100. This is to guarantee the following automatic
-		 * deduction of the limits.
-		 */
-		if ( queue->ClusterVCorePer <= 0 || queue->ClusterVCorePer > 100 )
-		{
-			res = RESQUEMGR_WRONG_ATTR;
-			snprintf(errorbuf, errorbufsize,
-					 "the explicit value of %s must be between 1%% and 100%%, "
-					 "wrong value = %.0lf%%",
-					 RSQDDLAttrNames[RSQ_DDL_ATTR_MEMORY_LIMIT_CLUSTER],
-					 queue->ClusterVCorePer);
-			ELOG_WARNING_ERRORMESSAGE_COMPLETEQUEUE(queue, errorbuf)
-			return res;
-		}
-
-		if ( queue->ClusterMemoryPer <= 0 || queue->ClusterMemoryPer > 100 )
-		{
-			res = RESQUEMGR_WRONG_ATTR;
-			snprintf(errorbuf, errorbufsize,
-					 "the explicit value of %s must be between 1%% and 100%%, "
-					 "wrong value = %.0lf%%",
-					 RSQDDLAttrNames[RSQ_DDL_ATTR_CORE_LIMIT_CLUSTER],
-					 queue->ClusterMemoryPer);
-			ELOG_WARNING_ERRORMESSAGE_COMPLETEQUEUE(queue, errorbuf)
-			return res;
-		}
-
 		/*
 		 * The values of MEMORY_LIMIT_CLUSER, CORE_LIMIT_CLUSTER must be
 		 * identical.
@@ -1277,60 +1117,11 @@ int checkAndCompleteNewResourceQueueAttributes(DynResourceQueue  queue,
 			}
 		}
 	}
-	/*================================*/
-	/* STEP 3 CASE2: value expression. */
-	/*================================*/
+	/*============================================================*/
+	/* STEP 3 CASE2: value expression. Temporarily not supported. */
+	/*============================================================*/
 	else {
-
-		/* MEMORY_LIMIT_CLUSTER and CORE_LIMIT_CLUSTER must be specified.*/
-		if ( queue->ClusterMemoryMB == -1 )
-		{
-			res = RESQUEMGR_LACK_ATTR;
-			snprintf(errorbuf, errorbufsize,
-					 "%s must be set",
-					 RSQDDLAttrNames[RSQ_DDL_ATTR_MEMORY_LIMIT_CLUSTER]);
-			ELOG_WARNING_ERRORMESSAGE_COMPLETEQUEUE(queue, errorbuf)
-			return res;
-		}
-
-		if ( queue->ClusterVCore == -1 )
-		{
-			res = RESQUEMGR_LACK_ATTR;
-			snprintf(errorbuf, errorbufsize,
-					 "%s must be set",
-					 RSQDDLAttrNames[RSQ_DDL_ATTR_CORE_LIMIT_CLUSTER]);
-			ELOG_WARNING_ERRORMESSAGE_COMPLETEQUEUE(queue, errorbuf)
-			return res;
-		}
-
-		/*
-		 * The values of MEMORY_LIMIT_CLUSTER, CORE_LIMIT_CLUSTER must be greater
-		 * than 0. This is to guarantee the following automatic deduction of the
-		 * limits.
-		 */
-		if ( queue->ClusterVCore <= 0  )
-		{
-			res = RESQUEMGR_WRONG_ATTR;
-			snprintf(errorbuf, errorbufsize,
-					 "the explicit value of %s must be greater than 0, "
-					 "wrong value = %f",
-					 RSQDDLAttrNames[RSQ_DDL_ATTR_CORE_LIMIT_CLUSTER],
-					 queue->ClusterVCore);
-			ELOG_WARNING_ERRORMESSAGE_COMPLETEQUEUE(queue, errorbuf)
-			return res;
-		}
-
-		if ( queue->ClusterMemoryMB <= 0 )
-		{
-			res = RESQUEMGR_WRONG_ATTR;
-			snprintf(errorbuf, errorbufsize,
-					 "the explicit value of %s must be greater than 0, "
-					 "wrong value = %dMB",
-					 RSQTBLAttrNames[RSQ_DDL_ATTR_MEMORY_LIMIT_CLUSTER],
-					 queue->ClusterMemoryMB);
-			ELOG_WARNING_ERRORMESSAGE_COMPLETEQUEUE(queue, errorbuf)
-			return res;
-		}
+		Assert(false);
 	}
 
 	/*
@@ -1342,36 +1133,7 @@ int checkAndCompleteNewResourceQueueAttributes(DynResourceQueue  queue,
 		queue->SegResourceQuotaMemoryMB = DEFAULT_RESQUEUE_VSEGRESOURCEQUOTA_N;
 	}
 
-	if ( queue->SegResourceQuotaMemoryMB != -1 )
-	{
-		/* The quota value must be greater than 0. */
-		if ( queue->SegResourceQuotaMemoryMB <= 0 )
-		{
-			res = RESQUEMGR_WRONG_ATTR;
-			snprintf(errorbuf, errorbufsize,
-					 "%s must be greater than 0",
-					 RSQDDLAttrNames[RSQ_DDL_ATTR_VSEG_RESOURCE_QUOTA]);
-			ELOG_WARNING_ERRORMESSAGE_COMPLETEQUEUE(queue, errorbuf)
-			return res;
-		}
-	}
-	else if ( queue->SegResourceQuotaVCore != -1.0 )
-	{
-		/* The quota value must be greater than 0. */
-		if ( queue->SegResourceQuotaVCore <= 0.0 )
-		{
-			res = RESQUEMGR_WRONG_ATTR;
-			snprintf(errorbuf, errorbufsize,
-					 "%s must be greater than 0.0",
-					 RSQTBLAttrNames[RSQ_DDL_ATTR_VSEG_RESOURCE_QUOTA]);
-			ELOG_WARNING_ERRORMESSAGE_COMPLETEQUEUE(queue, errorbuf)
-			return res;
-		}
-	}
-	else
-	{
-		Assert(0); /* Should never come here. */
-	}
+	Assert( queue->SegResourceQuotaMemoryMB != -1 );
 
 	/*
 	 * STEP 5: Check policy and set default value.
@@ -1382,46 +1144,8 @@ int checkAndCompleteNewResourceQueueAttributes(DynResourceQueue  queue,
 	}
 
 	/*
-	 * STEP 6: Check resource over-commit factor.
+	 * STEP 6. Check number of vseg limit.
 	 */
-	if ( queue->ResourceOvercommit < MINIMUM_RESQUEUE_OVERCOMMIT_N )
-	{
-		res = RESQUEMGR_WRONG_ATTR;
-		snprintf(errorbuf, errorbufsize,
-				 "%s is less than %lf, wrong value %lf",
-				 RSQDDLAttrNames[RSQ_DDL_ATTR_RESOURCE_OVERCOMMIT_FACTOR],
-				 MINIMUM_RESQUEUE_OVERCOMMIT_N,
-				 queue->ResourceOvercommit);
-		ELOG_WARNING_ERRORMESSAGE_COMPLETEQUEUE(queue, errorbuf)
-		return res;
-	}
-
-	/*
-	 * STEP 7. Check number of vseg limit.
-	 */
-	if ( queue->NVSegUpperLimit < MINIMUM_RESQUEUE_NVSEG_UPPER_LIMIT_N )
-	{
-		res = RESQUEMGR_WRONG_ATTR;
-		snprintf(errorbuf, errorbufsize,
-				 "%s is less than %d, wrong value %d",
-				 RSQDDLAttrNames[RSQ_DDL_ATTR_NVSEG_UPPER_LIMIT],
-				 MINIMUM_RESQUEUE_NVSEG_UPPER_LIMIT_N,
-				 queue->NVSegUpperLimit);
-		ELOG_WARNING_ERRORMESSAGE_COMPLETEQUEUE(queue, errorbuf)
-		return res;
-	}
-
-	if ( queue->NVSegLowerLimit < MINIMUM_RESQUEUE_NVSEG_LOWER_LIMIT_N )
-	{
-		res = RESQUEMGR_WRONG_ATTR;
-		snprintf(errorbuf, errorbufsize,
-				 "%s is less than %d, wrong value %d",
-				 RSQDDLAttrNames[RSQ_DDL_ATTR_NVSEG_LOWER_LIMIT],
-				 MINIMUM_RESQUEUE_NVSEG_LOWER_LIMIT_N,
-				 queue->NVSegLowerLimit);
-		ELOG_WARNING_ERRORMESSAGE_COMPLETEQUEUE(queue, errorbuf)
-		return res;
-	}
 
 	if ( queue->NVSegUpperLimit > 0 &&
 		 queue->NVSegLowerLimit > 0 &&
@@ -1437,7 +1161,7 @@ int checkAndCompleteNewResourceQueueAttributes(DynResourceQueue  queue,
 	}
 
 	/*
-	 * STEP 8. Check number of vseg limit per segment.
+	 * STEP 7. Check number of vseg limit per segment.
 	 */
 	if ( queue->NVSegUpperLimitPerSeg < MINIMUM_RESQUEUE_NVSEG_UPPER_PERSEG_LIMIT_N )
 	{
@@ -1522,25 +1246,11 @@ int createQueueAndTrack( DynResourceQueue		queue,
     if ( queue->OID > InvalidOid )
     {
 		getQueueTrackByQueueOID(queue->OID, &exist);
-		if (exist)
-		{
-			res = RESQUEMGR_DUPLICATE_QUEID;
-			snprintf(errorbuf, errorbufsize,
-					 "duplicate queue ID " INT64_FORMAT" for new resource queue",
-					 queue->OID);
-			ELOG_WARNING_ERRORMESSAGE_CREATEQUEUETRACK(queue, errorbuf)
-			goto exit;
-		}
+		Assert(!exist);
     }
 
     /* New queue name must be set and unique. */
-	if ( queue->NameLen <= 0 )
-	{
-		res = RESQUEMGR_NO_QUENAME;
-		snprintf(errorbuf, errorbufsize, "unset queue name string");
-		ELOG_WARNING_ERRORMESSAGE_CREATEQUEUETRACK(queue, errorbuf)
-		goto exit;
-	}
+    Assert(queue->NameLen > 0);
 
 	getQueueTrackByQueueName((char *)(queue->Name), queue->NameLen, &exist);
 	if (exist) {
@@ -1568,45 +1278,15 @@ int createQueueAndTrack( DynResourceQueue		queue,
 	{
 		/* Check if the parent queue id exists. */
 		parenttrack = getQueueTrackByQueueOID(queue->ParentOID, &exist);
-		if (exist)
-		{
-			/* Can not set pg_default as parent queue. */
-			if ( RESQUEUE_IS_DEFAULT(parenttrack->QueueInfo) )
-			{
-				res = RESQUEMGR_WRONG_PARENT_QUEUE;
-				snprintf( errorbuf, errorbufsize,
-						  "the parent queue cannot be pg_default");
-				ELOG_WARNING_ERRORMESSAGE_CREATEQUEUETRACK(queue, errorbuf)
-				goto exit;
-			}
+		Assert(exist);
 
-			/* 'pg_default' must has 'pg_root' as parent. */
-			if ( isDefaultQueue && !RESQUEUE_IS_ROOT(parenttrack->QueueInfo) )
-			{
-				res = RESQUEMGR_WRONG_PARENT_QUEUE;
-				snprintf( errorbuf, errorbufsize,
-						  "the parent queue of pg_default must be pg_root");
-				ELOG_WARNING_ERRORMESSAGE_CREATEQUEUETRACK(queue, errorbuf)
-				goto exit;
-			}
-
-			/* The parent queue can not have connections. */
-			if ( parenttrack->CurConnCounter > 0 )
-			{
-				res = RESQUEMGR_IN_USE;
-				snprintf( errorbuf, errorbufsize,
-						  "the parent queue %s has active connections",
-						  parenttrack->QueueInfo->Name);
-				ELOG_WARNING_ERRORMESSAGE_CREATEQUEUETRACK(queue, errorbuf)
-				goto exit;
-			}
-		}
-		else
+		/* The parent queue can not have connections. */
+		if ( parenttrack->CurConnCounter > 0 )
 		{
-			res = RESQUEMGR_WRONG_PARENT_QUEUE;
-			snprintf(errorbuf, errorbufsize,
-					 "no expected parent queue " INT64_FORMAT,
-					 queue->ParentOID);
+			res = RESQUEMGR_IN_USE;
+			snprintf( errorbuf, errorbufsize,
+					  "the parent queue %s has active connections",
+					  parenttrack->QueueInfo->Name);
 			ELOG_WARNING_ERRORMESSAGE_CREATEQUEUETRACK(queue, errorbuf)
 			goto exit;
 		}
@@ -1659,12 +1339,7 @@ int createQueueAndTrack( DynResourceQueue		queue,
 	setQueueTrackIndexedByQueueName(newqueuetrack);
 
 	/* Update overall ratio index. */
-	if ( !RESQUEUE_IS_PERCENT(newqueuetrack->QueueInfo) )
-	{
-		newqueuetrack->MemCoreRatio = trunc(newqueuetrack->QueueInfo->ClusterMemoryMB /
-				  	  	  	  	  	  	    newqueuetrack->QueueInfo->ClusterVCore);
-		addResourceQueueRatio(newqueuetrack);
-	}
+	Assert(RESQUEUE_IS_PERCENT(newqueuetrack->QueueInfo));
 
 	/* Set return value. */
 	*track = newqueuetrack;
