@@ -120,7 +120,6 @@ computeQueryQuotaByPolicy AllocationPolicy[RSQ_ALLOCATION_POLICY_COUNT] = {
 typedef int (* dispatchResourceToQueriesByPolicy )(DynResourceQueueTrack);
 
 int dispatchResourceToQueries_EVEN(DynResourceQueueTrack track);
-int dispatchResourceToQueries_FIFO(DynResourceQueueTrack track);
 
 dispatchResourceToQueriesByPolicy DispatchPolicy[RSQ_ALLOCATION_POLICY_COUNT] = {
 	dispatchResourceToQueries_EVEN
@@ -1685,12 +1684,7 @@ void generateQueueReport( int queid, char *buff, int buffsize )
 	bool 			 	  exist 	= false;
 	DynResourceQueueTrack quetrack 	= getQueueTrackByQueueOID(queid, &exist);
 
-	if ( !exist ) {
-		sprintf(buff, "UNKNOWN QUEUE.\n");
-		return;
-	}
-
-	Assert( quetrack != NULL );
+	Assert( exist && quetrack != NULL );
 	que = quetrack->QueueInfo;
 
 	if ( RESQUEUE_IS_PERCENT(que) )
@@ -1808,15 +1802,7 @@ int registerConnectionByUserID(ConnectionTrack  conntrack,
 		goto exit;
 	}
 
-	if ( queuetrack == NULL )
-	{
-		snprintf(errorbuf, errorbufsize,
-				 "no resource queue assigned for role %s",
-				 conntrack->UserID);
-		elog(WARNING, "ConnID %d. %s", conntrack->ConnID, errorbuf);
-		res = RESQUEMGR_NO_ASSIGNEDQUEUE;
-		goto exit;
-	}
+	Assert(queuetrack != NULL);
 
 	queuetrack->CurConnCounter++;
 
@@ -1877,10 +1863,8 @@ void returnConnectionToQueue(ConnectionTrack conntrack, bool istimeout)
  */
 void cancelResourceAllocRequest(ConnectionTrack conntrack, char *errorbuf)
 {
-	if ( conntrack->Progress != CONN_PP_RESOURCE_QUEUE_ALLOC_WAIT )
-	{
-		Assert(false);
-	}
+	Assert(conntrack->Progress == CONN_PP_RESOURCE_QUEUE_ALLOC_WAIT);
+
 	DynResourceQueueTrack queuetrack = (DynResourceQueueTrack)(conntrack->QueueTrack);
 
 	/* Remove from queueing list.  */
@@ -3682,51 +3666,25 @@ void refreshResourceQueuePercentageCapacityInternal(uint32_t clustermemmb,
 										track->ClusterVCoreMaxPer;
 
 			uint32_t tmpratio = 0;
-			if ( ptrack == NULL &&
-				 track->ClusterMemoryActPer == track->ClusterVCoreActPer )
-			{
-				tmpratio = clustermemmb / clustercore;
-				track->QueueInfo->ClusterMemoryMB =
-					1.0 * clustermemmb * track->ClusterMemoryActPer / 100;
-				track->QueueInfo->ClusterVCore    =
-					1.0 * clustercore * track->ClusterVCoreActPer / 100;
 
-				track->ClusterMemoryMaxMB =
-					1.0 * clustermemmb * track->ClusterMemoryMaxPer / 100;
-				track->ClusterVCoreMax =
-					1.0 * clustercore * track->ClusterVCoreMaxPer / 100;
-			}
-			else
-			{
-				/*
-				 * In case the path from root to this queue contains only queues
-				 * expressed by percentages. We should use the cluster capacity
-				 * to calculate the capacity.
-				 *
-				 * Otherwise, choose the first ancestor queue that is expressed
-				 * by exact memory size and core number.
-				 */
-				int32_t memmb = ptrack == NULL ?
-								clustermemmb :
-								ptrack->QueueInfo->ClusterMemoryMB;
-				double core = ptrack == NULL ?
-							  clustercore :
-							  ptrack->QueueInfo->ClusterVCore;
+			/*
+			 * All the queues from the root to this queue are expressed by
+			 * percentage, and the memory limit has the same limit with core
+			 * limit.
+			 */
+			Assert( ptrack == NULL );
+			Assert( track->ClusterMemoryActPer == track->ClusterVCoreActPer );
 
-				track->QueueInfo->ClusterMemoryMB =
-					1.0 * memmb * track->ClusterMemoryActPer / 100;
-				track->QueueInfo->ClusterVCore    =
-					1.0 * core * track->ClusterVCoreActPer / 100;
+			tmpratio = clustermemmb / clustercore;
+			track->QueueInfo->ClusterMemoryMB =
+				1.0 * clustermemmb * track->ClusterMemoryActPer / 100;
+			track->QueueInfo->ClusterVCore    =
+				1.0 * clustercore * track->ClusterVCoreActPer / 100;
 
-				track->ClusterMemoryMaxMB =
-					1.0 * memmb * track->ClusterMemoryMaxPer / 100;
-				track->ClusterVCoreMax =
-					1.0 * core * track->ClusterVCoreMaxPer / 100;
-
-				/* Decide and update ratio. */
-				tmpratio = trunc(track->QueueInfo->ClusterMemoryMB /
-								 track->QueueInfo->ClusterVCore);
-			}
+			track->ClusterMemoryMaxMB =
+				1.0 * clustermemmb * track->ClusterMemoryMaxPer / 100;
+			track->ClusterVCoreMax =
+				1.0 * clustercore * track->ClusterVCoreMaxPer / 100;
 
 			if ( tmpratio != track->MemCoreRatio && track->trackedMemCoreRatio )
 			{
@@ -4342,11 +4300,6 @@ RESOURCEPROBLEM isResourceAcceptable(ConnectionTrack conn, int segnumact)
 	return RESPROBLEM_NO;
 }
 
-int dispatchResourceToQueries_FIFO(DynResourceQueueTrack track)
-{
-	return FUNC_RETURN_OK;
-}
-
 void buildAcquireResourceResponseMessage(ConnectionTrack conn)
 {
 	ListCell *cell = NULL;
@@ -4786,28 +4739,6 @@ void timeoutQueuedRequest(void)
 				snprintf(errorbuf, sizeof(errorbuf),
 						 "queued resource request is timed out due to resource "
 						 "fragment problem");
-				tocancel = true;
-			}
-
-			/*
-			 * Case 4. Check if resource is not possible to be met based on
-			 * 		   current cluster resource. This may occur if the table was
-			 * 		   created by a big cluster but now the cluster shrinks too
-			 * 		   much.
-			 */
-			if ( (curcon->HeadQueueTime > 0) &&
-				 (curmsec - curcon->HeadQueueTime >
-	 	 			  1000000L * rm_resource_allocation_timeout) &&
-				 (curcon->SegNumMin * curcon->SegMemoryMB >
-				 	  ((DynResourceQueueTrack)curcon->QueueTrack)->ClusterMemoryMaxMB) )
-			{
-				elog(LOG, "The queued resource request timeout is detected due to "
-						  "no enough cluster resource. ConnID %d",
-						  curcon->ConnID);
-
-				snprintf(errorbuf, sizeof(errorbuf),
-						 "queued resource request is timed out due to not enough "
-						 "cluster resource capacity");
 				tocancel = true;
 			}
 
