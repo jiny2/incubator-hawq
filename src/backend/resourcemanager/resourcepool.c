@@ -3210,8 +3210,6 @@ void returnAllGRMResourceFromSegment(SegResource segres)
 	GRMContainerSet ctns  = NULL;
 	uint32_t 		count = 0;
 
-	minusResourceFromResourceManagerByBundle(&(segres->Allocated));
-
 	for ( int i = 0 ; i < PQUEMGR->RatioCount ; ++i )
 	{
 		ctns = segres->ContainerSets[i];
@@ -3952,9 +3950,6 @@ void dropAllResPoolGRMContainersToToBeKicked(void)
 	for(uint32_t idx = 0; idx < PRESPOOL->SegmentIDCounter; idx++)
 	{
 	    SegResource segres = getSegResource(idx);
-
-	    /* Minus resource from resource queue resource quota. */
-	    minusResourceFromResourceManagerByBundle(&(segres->Allocated));
 		/* This call makes resource pool remove unused containers. */
 		dropAllGRMContainersFromSegment(segres);
 	}
