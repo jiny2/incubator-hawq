@@ -3865,10 +3865,10 @@ int addNewResourceToResourceManager(int32_t memorymb, double core)
 
 int minusResourceFromResourceManagerByBundle(ResourceBundle bundle)
 {
-	return minusResourceFromReourceManager(bundle->MemoryMB, bundle->Core);
+	return minusResourceFromResourceManager(bundle->MemoryMB, bundle->Core);
 }
 
-int minusResourceFromReourceManager(int32_t memorymb, double core)
+int minusResourceFromResourceManager(int32_t memorymb, double core)
 {
 	if ( memorymb == 0 && core ==0 )
 		return FUNC_RETURN_OK;
@@ -3885,7 +3885,7 @@ int minusResourceFromReourceManager(int32_t memorymb, double core)
 						  	  	core);
 	}
 	else {
-		elog(WARNING, "HAWQ RM :: minusResourceFromReourceManager: "
+		elog(WARNING, "HAWQ RM :: minusResourceFromResourceManager: "
 					  "Wrong ratio %u not tracked.", ratio);
 		return RESQUEMGR_NO_RATIO;
 	}
