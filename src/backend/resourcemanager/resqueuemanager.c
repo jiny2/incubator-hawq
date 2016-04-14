@@ -3871,7 +3871,9 @@ int minusResourceFromResourceManagerByBundle(ResourceBundle bundle)
 int minusResourceFromResourceManager(int32_t memorymb, double core)
 {
 	if ( memorymb == 0 && core ==0 )
+	{
 		return FUNC_RETURN_OK;
+	}
 
 	/* Expect integer cores to add. */
 	Assert( trunc(core) == core );
@@ -3879,16 +3881,21 @@ int minusResourceFromResourceManager(int32_t memorymb, double core)
 	int32_t  ratioindex = getResourceQueueRatioIndex(ratio);
 	Assert( ratioindex >= 0 );
 
-	if ( ratioindex >= 0 ) {
-		minusResourceBundleData(&(PQUEMGR->RatioTrackers[ratioindex]->TotalAllocated),
-						  	  	memorymb,
-						  	  	core);
-	}
-	else {
-		elog(WARNING, "HAWQ RM :: minusResourceFromResourceManager: "
-					  "Wrong ratio %u not tracked.", ratio);
-		return RESQUEMGR_NO_RATIO;
-	}
+	elog(LOG, "minusResourceFromResourceManager (%d MB, %lf CORE) "
+			  "minus (%d MB, %lf CORE)",
+			  PQUEMGR->RatioTrackers[ratioindex]->TotalAllocated.MemoryMB,
+			  PQUEMGR->RatioTrackers[ratioindex]->TotalAllocated.Core,
+			  memorymb,
+			  core);
+
+	minusResourceBundleData(&(PQUEMGR->RatioTrackers[ratioindex]->TotalAllocated),
+						  	memorymb,
+						  	core);
+
+	elog(LOG, "minusResourceFromResourceManager leavs (%d MB, %lf CORE)",
+			  PQUEMGR->RatioTrackers[ratioindex]->TotalAllocated.MemoryMB,
+			  PQUEMGR->RatioTrackers[ratioindex]->TotalAllocated.Core);
+
 	return FUNC_RETURN_OK;
 }
 
