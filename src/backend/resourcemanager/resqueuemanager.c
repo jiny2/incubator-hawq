@@ -3833,6 +3833,10 @@ int addNewResourceToResourceManagerByBundle(ResourceBundle bundle)
 
 int addNewResourceToResourceManager(int32_t memorymb, double core)
 {
+	elog(LOG, "addNewResourceToResourceManager input (%d MB, %lf CORE)",
+			  memorymb,
+			  core);
+
 	if ( memorymb == 0 && core == 0 ) {
 		return FUNC_RETURN_OK;
 	}
@@ -3842,21 +3846,22 @@ int addNewResourceToResourceManager(int32_t memorymb, double core)
 	Assert( trunc(core) == core );
 	uint32_t ratio = trunc(1.0 * memorymb / core);
 	int32_t  ratioindex = getResourceQueueRatioIndex(ratio);
-	Assert( ratioindex >= 0 );
 
-	if ( ratioindex >= 0 ) {
-		addResourceBundleData(&(PQUEMGR->RatioTrackers[ratioindex]->TotalAllocated),
-						  	  memorymb,
-							  core);
-	}
-	else {
-		elog(LOG, "To add resource (%d MB, %lf CORE), resource manager gets "
-				  "ratio %u not tracked.",
-				  memorymb,
-				  core,
-				  ratio);
-		return RESQUEMGR_NO_RATIO;
-	}
+	elog(LOG, "addNewResourceToResourceManager (%d MB, %lf CORE) "
+			  "plus (%d MB, %lf CORE)",
+			  PQUEMGR->RatioTrackers[ratioindex]->TotalAllocated.MemoryMB,
+			  PQUEMGR->RatioTrackers[ratioindex]->TotalAllocated.Core,
+			  memorymb,
+			  core);
+
+	addResourceBundleData(&(PQUEMGR->RatioTrackers[ratioindex]->TotalAllocated),
+						  memorymb,
+						  core);
+
+	elog(LOG, "addNewResourceToResourceManager leavs (%d MB, %lf CORE)",
+			  PQUEMGR->RatioTrackers[ratioindex]->TotalAllocated.MemoryMB,
+			  PQUEMGR->RatioTrackers[ratioindex]->TotalAllocated.Core);
+
 
 	/* New resource is added. Try to dispatch resource to queries. */
 	PQUEMGR->toRunQueryDispatch = true;
@@ -3870,6 +3875,10 @@ int minusResourceFromResourceManagerByBundle(ResourceBundle bundle)
 
 int minusResourceFromResourceManager(int32_t memorymb, double core)
 {
+	elog(LOG, "minusResourceFromResourceManager input (%d MB, %lf CORE)",
+			  memorymb,
+			  core);
+
 	if ( memorymb == 0 && core ==0 )
 	{
 		return FUNC_RETURN_OK;
