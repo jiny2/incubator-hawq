@@ -440,7 +440,7 @@ int  loadParameters(void)
 	res = SimpleStringToInt32(&YARNPort, &testport);
 	if ( res != FUNC_RETURN_OK ) {
 		res = RESBROK_WRONG_GLOB_MGR_ADDRESS;
-		elog(LOG, "the port number in property %s can not be parsed.",
+		elog(LOG, "the port number in property %s cannot be parsed.",
 				  HAWQDRM_CONFFILE_YARN_SERVERADDR);
 		goto exit;
 	}
@@ -463,7 +463,7 @@ int  loadParameters(void)
 	res = SimpleStringToInt32(&YARNSchedulerPort, &testschedport);
 	if ( res != FUNC_RETURN_OK ) {
 		res = RESBROK_WRONG_GLOB_MGR_ADDRESS;
-		elog(LOG, "the port number in property %s can not be parsed.",
+		elog(LOG, "the port number in property %s cannot be parsed.",
 				  HAWQDRM_CONFFILE_YARN_SCHEDULERADDR);
 		goto exit;
 	}

@@ -210,7 +210,7 @@ bool handleRMDDLRequestManipulateResourceQueue(void **arg)
 				snprintf(errorbuf, sizeof(errorbuf),
 						"exceed maximum resource queue number %d",
 						rm_nresqueue_limit);
-				elog(WARNING, "resource manager can not create resource queue "
+				elog(WARNING, "resource manager cannot create resource queue "
 							  "because %s",
 							  errorbuf);
 				goto senderr;
@@ -227,7 +227,7 @@ bool handleRMDDLRequestManipulateResourceQueue(void **arg)
 			{
 				rm_pfree(PCONTEXT, newqueue);
 				ddlres = res;
-				elog(WARNING, "resource manager can not create resource queue "
+				elog(WARNING, "resource manager cannot create resource queue "
 							  "with its attributes because %s",
 							  errorbuf);
 				goto senderr;
@@ -240,7 +240,7 @@ bool handleRMDDLRequestManipulateResourceQueue(void **arg)
 			{
 				rm_pfree(PCONTEXT, newqueue);
 				ddlres = res;
-				elog(WARNING, "resource manager can not complete resource queue's "
+				elog(WARNING, "resource manager cannot complete resource queue's "
 							  "attributes because %s",
 							  errorbuf);
 				goto senderr;
@@ -254,7 +254,7 @@ bool handleRMDDLRequestManipulateResourceQueue(void **arg)
 				if (newtrack != NULL)
 					rm_pfree(PCONTEXT, newtrack);
 				ddlres = res;
-				elog(WARNING, "resource manager can not create resource queue %s, %s",
+				elog(WARNING, "resource manager cannot create resource queue %s, %s",
 							  newqueue->Name,
 							  errorbuf);
 				goto senderr;
