@@ -254,7 +254,7 @@ bool handleRMDDLRequestManipulateResourceQueue(void **arg)
 				if (newtrack != NULL)
 					rm_pfree(PCONTEXT, newtrack);
 				ddlres = res;
-				elog(WARNING, "resource manager cannot create resource queue %s, %s",
+				elog(WARNING, "resource manager cannot create resource queue \'%s\', %s",
 							  newqueue->Name,
 							  errorbuf);
 				goto senderr;
@@ -330,7 +330,7 @@ bool handleRMDDLRequestManipulateResourceQueue(void **arg)
 			{
 				rm_pfree(PCONTEXT, newqueue);
 				ddlres = res;
-				elog(WARNING, "resource manager cannot alter resource queue %s, %s",
+				elog(WARNING, "resource manager cannot alter resource queue \'%s\', %s",
 							  nameattr->Val.Str,
 							  errorbuf);
 				goto senderr;
@@ -344,7 +344,7 @@ bool handleRMDDLRequestManipulateResourceQueue(void **arg)
 			{
 				ddlres = RESQUEMGR_NO_QUENAME;
 				snprintf(errorbuf, sizeof(errorbuf), "the queue doesn't exist");
-				elog(WARNING, "resource manager cannot alter resource queue %s, %s",
+				elog(WARNING, "resource manager cannot alter resource queue \'%s\', %s",
 							  nameattr->Val.Str,
 							  errorbuf);
 				goto senderr;
@@ -372,13 +372,13 @@ bool handleRMDDLRequestManipulateResourceQueue(void **arg)
 					{
 						ddlres = RESQUEMGR_ALTERQUEUE_NOTALLOWED;
 						snprintf(errorbuf, sizeof(errorbuf),
-								 "user can only alter branch resource queue %s "
+								 "user can only alter branch resource queue \'%s\' "
 								 "attributes %s and %s",
 								 nameattr->Val.Str,
 								 RSQDDLAttrNames[RSQ_DDL_ATTR_MEMORY_LIMIT_CLUSTER],
 								 RSQDDLAttrNames[RSQ_DDL_ATTR_CORE_LIMIT_CLUSTER]);
 						elog(WARNING, "resource manager cannot alter resource "
-									  "queue %s, %s",
+									  "queue \'%s\', %s",
 									  nameattr->Val.Str,
 									  errorbuf);
 						goto senderr;
@@ -483,9 +483,9 @@ bool handleRMDDLRequestManipulateResourceQueue(void **arg)
 			{
 				ddlres = RESQUEMGR_NO_QUENAME;
 				snprintf(errorbuf, sizeof(errorbuf),
-						 "resource queue %s doesn't exist",
+						 "resource queue \'%s\' doesn't exist",
 						 nameattr->Val.Str);
-				elog(WARNING, "resource manager cannot drop resource queue %s, %s",
+				elog(WARNING, "resource manager cannot drop resource queue \'%s\', %s",
 							  nameattr->Val.Str,
 							  errorbuf);
 				goto senderr;
@@ -495,9 +495,9 @@ bool handleRMDDLRequestManipulateResourceQueue(void **arg)
 			{
 				ddlres = RESQUEMGR_IN_USE;
 				snprintf(errorbuf, sizeof(errorbuf),
-						 "resource queue %s is a branch queue",
+						 "resource queue \'%s\' is a branch queue",
 						 todroptrack->QueueInfo->Name);
-				elog(WARNING, "Resource manager cannot drop resource queue %s, %s",
+				elog(WARNING, "Resource manager cannot drop resource queue \'%s\', %s",
 							  nameattr->Val.Str,
 							  errorbuf);
 				goto senderr;
@@ -507,9 +507,9 @@ bool handleRMDDLRequestManipulateResourceQueue(void **arg)
 				 todroptrack->QueryResRequests.NodeCount > 0 )
 			{
 				ddlres = RESQUEMGR_IN_USE;
-				snprintf(errorbuf, sizeof(errorbuf), "resource queue %s is busy",
+				snprintf(errorbuf, sizeof(errorbuf), "resource queue \'%s\' is busy",
 						 todroptrack->QueueInfo->Name);
-				elog(WARNING, "resource manager cannot drop resource queue %s, %s",
+				elog(WARNING, "resource manager cannot drop resource queue \'%s\', %s",
 							  nameattr->Val.Str,
 							  errorbuf);
 				goto senderr;
@@ -523,7 +523,7 @@ bool handleRMDDLRequestManipulateResourceQueue(void **arg)
 				ddlres = res;
 				snprintf(errorbuf, sizeof(errorbuf),
 						 "cannot update resource queue changes in pg_resqueue");
-				elog(WARNING, "Resource manager cannot drop resource queue %s, %s",
+				elog(WARNING, "Resource manager cannot drop resource queue \'%s\', %s",
 							  nameattr->Val.Str,
 							  errorbuf);
 				goto senderr;
@@ -533,7 +533,7 @@ bool handleRMDDLRequestManipulateResourceQueue(void **arg)
 			if (res != FUNC_RETURN_OK)
 			{
 				ddlres = res;
-				elog(WARNING, "resource manager cannot drop resource queue %s, %s",
+				elog(WARNING, "resource manager cannot drop resource queue \'%s\', %s",
 							  nameattr->Val.Str,
 						      errorbuf);
 				goto senderr;
@@ -760,8 +760,8 @@ int updateResqueueCatalog(int					 action,
 			if(res != FUNC_RETURN_OK)
 			{
 				elog(WARNING, "resource manager updates the status of the parent "
-							  "resource queue %s failed when create resource "
-							  "queue %s",
+							  "resource queue \'%s\' failed when create resource "
+							  "queue \'%s\'",
 							  parenttrack->QueueInfo->Name,
 							  queuetrack->QueueInfo->Name);
 				DRMGlobalInstance->ResManagerMainKeepRun = false;
@@ -785,7 +785,7 @@ int updateResqueueCatalog(int					 action,
 		if(res != FUNC_RETURN_OK)
 		{
 			elog(WARNING, "resource manager performs update operation on "
-						  "pg_resqueue failed when update resource queue %s",
+						  "pg_resqueue failed when update resource queue \'%s\'",
 						  queuename);
 			DRMGlobalInstance->ResManagerMainKeepRun = false;
 		}
@@ -799,7 +799,7 @@ int updateResqueueCatalog(int					 action,
 		if(res != FUNC_RETURN_OK)
 		{
 			elog(WARNING, "resource manager performs delete operation on "
-						  "pg_resqueue failed when drop resource queue %s.",
+						  "pg_resqueue failed when drop resource queue \'%s\'.",
 						  queuename);
 			DRMGlobalInstance->ResManagerMainKeepRun = false;
 			break;
@@ -832,7 +832,7 @@ int updateResqueueCatalog(int					 action,
 			if(res != FUNC_RETURN_OK)
 			{
 				elog(WARNING, "resource manager updates the status of the parent "
-							  "resource queue %s failed when drop resource queue %s",
+							  "resource queue \'%s\' failed when drop resource queue \'%s\'",
 							  parenttrack->QueueInfo->Name,
 							  queuetrack->QueueInfo->Name);
 				DRMGlobalInstance->ResManagerMainKeepRun = false;
@@ -1363,7 +1363,7 @@ int performUpdateActionForPGResqueue(List *colvalues, char *queuename)
 		res = LIBPQ_FAIL_EXECUTE;
 		goto cleanup;
 	}
-	elog(LOG, "Resource queue %s is updated", queuename);
+	elog(LOG, "Resource queue \'%s\' is updated", queuename);
 
 cleanup:
 	if(sql != NULL)
@@ -1498,7 +1498,7 @@ int performDeleteActionForPGResqueue(char *queuename)
 		goto cleanup;
 	}
 
-	elog(LOG, "resource queue %s is dropped", queuename);
+	elog(LOG, "resource queue \'%s\' is dropped", queuename);
 
 cleanup:
 	if(sql != NULL)

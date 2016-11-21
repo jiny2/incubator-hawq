@@ -948,7 +948,7 @@ int updateResourceQueueAttributesInShadow(List 			 		*attributes,
 					 attrname->Str,
 					 attrvalue->Str);
 			elog(WARNING, "resource manager failed to update resource queue "
-						  "attribute in shadow of resource queue %s, %s",
+						  "attribute in shadow of resource queue \'%s\', %s",
 						  queue->QueueInfo->Name,
 						  errorbuf);
 			return res;
@@ -958,9 +958,9 @@ int updateResourceQueueAttributesInShadow(List 			 		*attributes,
 	return res;
 }
 
-#define ELOG_WARNING_ERRORMESSAGE_COMPLETEQUEUE(queue,errorbuf)				   \
-		elog(WARNING, "resource manager cannot complete resource queue %s, %s",\
-					  (queue)->Name,										   \
+#define ELOG_WARNING_ERRORMESSAGE_COMPLETEQUEUE(queue,errorbuf)				       \
+		elog(WARNING, "resource manager cannot complete resource queue \'%s\', %s",\
+					  (queue)->Name,										       \
 					  (errorbuf));
 /*
  * This is one API for checking if new resource queue definition is valid to be
@@ -1601,7 +1601,7 @@ void removeResourceQueueRatio(DynResourceQueueTrack track)
 
 	/* Ignore unkonwn ratio number. */
 	if ( ratioindex < 0 ) {
-		elog( WARNING, "cannot track resource queue %s with memory "
+		elog( WARNING, "cannot track resource queue \'%s\' with memory "
 					   "core ratio %d MB Per CORE.",
 					   track->QueueInfo->Name,
 					   track->MemCoreRatio);
@@ -1616,7 +1616,7 @@ void removeResourceQueueRatio(DynResourceQueueTrack track)
 	res = removeQueueTrackFromMemoryCoreTrack(PQUEMGR->RatioTrackers[ratioindex],
 											  track);
 	if ( res != FUNC_RETURN_OK ) {
-		elog( WARNING, "cannot find resource queue %s with memory "
+		elog( WARNING, "cannot find resource queue \'%s\' with memory "
 					   "core ratio %d MB Per CORE in memory core ratio tracker.",
 					   track->QueueInfo->Name,
 					   track->MemCoreRatio);
@@ -2883,7 +2883,7 @@ void dispatchResourceToQueries(void)
 			/* Ignore the queues not in use. */
 			if ( !track->isBusy )
 			{
-				elog(DEBUG3, "resource manager skipped idle resource queue %s",
+				elog(DEBUG3, "resource manager skipped idle resource queue \'%s\'",
 							 track->QueueInfo->Name);
 				continue;
 			}
@@ -3376,7 +3376,7 @@ int computeQueryQuota(ConnectionTrack conn, char *errorbuf, int errorbufsize)
 			res = RESQUEMGR_TOO_MANY_FIXED_SEGNUM;
 			snprintf(errorbuf, errorbufsize,
 					 "minimum expected number of virtual segment %d is more than "
-					 "maximum possible number %d in queue %s",
+					 "maximum possible number %d in resource queue \'%s\'",
 					 conn->MinSegCountFixed,
 					 conn->SegNum,
 					 track->QueueInfo->Name);
@@ -3927,7 +3927,7 @@ void returnAllocatedResourceToLeafQueue(DynResourceQueueTrack track,
 {
 	minusResourceBundleData(&(track->TotalUsed), memorymb, core);
 
-	elog(DEBUG3, "return resource to queue %s (%d MB, %lf CORE).",
+	elog(DEBUG3, "return resource to resource queue \'%s\' (%d MB, %lf CORE).",
 			     track->QueueInfo->Name,
 			     memorymb, core);
 }

@@ -203,19 +203,19 @@ int ResManagerMain(int argc, char *argv[])
 
     res = createDRMInstance();
 	if ( res != FUNC_RETURN_OK ) {
-		elog(FATAL, "HAWQ RM Can not create resource manager global instance.");
+		elog(FATAL, "HAWQ RM cannot create resource manager global instance.");
 	}
 	elog(DEBUG5, "HAWQ RM :: created dynamic resource manager instance.");
 
     res = createDRMMemoryContext();
     if ( res != FUNC_RETURN_OK ) {
-    	elog(FATAL, "HAWQ RM Can not create resource manager global instance.");
+    	elog(FATAL, "HAWQ RM cannot create resource manager global instance.");
     }
 	elog(DEBUG5, "HAWQ RM :: created resource manager memory context.");
 
 	res = initializeDRMInstance(PCONTEXT);
 	if ( res != FUNC_RETURN_OK ) {
-	    	elog(FATAL, "HAWQ RM Can not initialize global instance.");
+	    	elog(FATAL, "HAWQ RM cannot initialize global instance.");
 	}
 
 	elog(DEBUG5, "HAWQ RM :: initialized resource manager instance.");
@@ -1935,7 +1935,7 @@ int addResourceQueueAndUserFromProperties(List *queueprops, List *userprops)
 														 sizeof(errorbuf));
 		if ( res != FUNC_RETURN_OK )
 		{
-			elog(RMLOG, "res=%d error=%s, after check and complete queue %s.",
+			elog(RMLOG, "res=%d error=%s, after check and complete queue \'%s\'.",
 						res,
 						errorbuf,
 						partqueue->Name);
@@ -1947,7 +1947,7 @@ int addResourceQueueAndUserFromProperties(List *queueprops, List *userprops)
 			continue;
 		}
 
-		elog(RMLOG, "Checked and completed queue %s.", partqueue->Name);
+		elog(RMLOG, "Checked and completed queue \'%s\'.", partqueue->Name);
 
 		DynResourceQueueTrack newtrack = NULL;
 		res = createQueueAndTrack(partqueue, &newtrack, errorbuf, sizeof(errorbuf));
@@ -1960,14 +1960,14 @@ int addResourceQueueAndUserFromProperties(List *queueprops, List *userprops)
 				rm_pfree(PCONTEXT, newtrack);
 			}
 
-			elog( WARNING, "Resource manager cannot create resource queue %s "
+			elog( WARNING, "Resource manager cannot create resource queue \'%s\' "
 						   "because %s",
 						   partqueue->Name,
 						   errorbuf);
 			continue;
 		}
 
-		elog(RMLOG, "Created queue %s.", partqueue->Name);
+		elog(RMLOG, "Created queue \'%s\'.", partqueue->Name);
 
 		char buffer[1024];
 		generateQueueReport(partqueue->OID, buffer, sizeof(buffer));
