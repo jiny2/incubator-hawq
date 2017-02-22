@@ -2664,7 +2664,7 @@ static void allocate_random_relation(Relation_Data* rel_data,
 		Assignment_Log_Context* log_context, TargetSegmentIDMap* idMap,
 		Relation_Assignment_Context* assignment_context,
 		split_to_segment_mapping_context *context) {
-	if(true){//GUC of round robin algorithm
+	if(hawq_roundrobin_taskassign){//GUC of round robin algorithm
 		allocate_random_relation2(rel_data, log_context, idMap, assignment_context,context);
 		return;
 	}
