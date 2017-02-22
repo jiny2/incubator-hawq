@@ -393,6 +393,11 @@ static void allocate_random_relation(Relation_Data* rel_data,
 		Relation_Assignment_Context* assignment_context,
 		split_to_segment_mapping_context *context);
 
+static void allocate_random_relation2(Relation_Data* rel_data,
+		Assignment_Log_Context *log_context, TargetSegmentIDMap* idMap,
+		Relation_Assignment_Context* assignment_context,
+		split_to_segment_mapping_context *context);
+
 static void print_datalocality_overall_log_information(SplitAllocResult *result,
 		List *virtual_segments, int relationCount,
 		Assignment_Log_Context *log_context,
@@ -2633,10 +2638,36 @@ static bool allocate_hash_relation(Relation_Data* rel_data,
 	return false;
 }
 
+static void allocate_random_relation2(Relation_Data* rel_data,
+		Assignment_Log_Context* log_context, TargetSegmentIDMap* idMap,
+		Relation_Assignment_Context* assignment_context,
+		split_to_segment_mapping_context *context) {
+	ListCell *lc_file;
+	int blockNum = 0;
+	foreach(lc_file, rel_data->files)
+	{
+		Relation_File *rel_file = (Relation_File *) lfirst(lc_file);
+		for (int i = 0; i < rel_file->split_num; i++) {
+			int64_t split_size = rel_file->splits[i].length;
+			int targethost = (blockNum)
+					% (assignment_context->virtual_segment_num);
+			blockNum++;
+			rel_file->splits[i].host = targethost;
+			assignment_context->totalvols[targethost] += split_size;
+			assignment_context->split_num[targethost]++;
+			assignment_context->continue_split_num[targethost]++;
+		}
+		assignment_context->total_split_num += rel_file->split_num;
+	}
+}
 static void allocate_random_relation(Relation_Data* rel_data,
 		Assignment_Log_Context* log_context, TargetSegmentIDMap* idMap,
 		Relation_Assignment_Context* assignment_context,
 		split_to_segment_mapping_context *context) {
+	if(true){//GUC of round robin algorithm
+		allocate_random_relation2(rel_data, log_context, idMap, assignment_context,context);
+		return;
+	}
 	/*different from hash relation, allocation unit in random relation is block*/
 
 	/*first set max size per virtual segments.

@@ -723,6 +723,7 @@ bool		optimizer_enforce_subplans;
 bool		optimizer_enable_assert_maxonerow;
 bool		optimizer_enumerate_plans;
 bool		optimizer_sample_plans;
+bool		hawq_roundrobin_taskassign = FALSE;
 int		optimizer_plan_id;
 int  optimizer_samples_number;
 int  optimizer_log_failure;
@@ -4417,6 +4418,15 @@ static struct config_bool ConfigureNamesBool[] =
 		false, NULL, NULL
 	},
 
+	{
+		{"hawq_roundrobin_taskassign", PGC_USERSET, DEVELOPER_OPTIONS,
+			gettext_noop("Allows the optimizer's constraint framework to derive array constraints."),
+			NULL,
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&hawq_roundrobin_taskassign,
+		false, NULL, NULL
+	},
 
 	/* End-of-list marker */
 	{
